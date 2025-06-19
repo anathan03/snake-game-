@@ -7,22 +7,33 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Snake Game</h1>
-  <div id="scoreboard">Score: <span id="score">0</span></div>
-  <div id="highscoreboard">High Score: <span id="highscore">0</span></div>
-  <div id="countdown">3</div>
-  <canvas id="game" width="400" height="400"></canvas>
-  <button id="restart">Restart</button>
+  <div id="loading-screen">
+    <h2>Made by Andrew Nathan</h2>
+  </div>
 
-  <div id="mobile-controls">
-    <div class="row">
-      <button id="up">↑</button>
-    </div>
-    <div class="row">
-      <button id="left">←</button>
-      <button id="down">↓</button>
-      <button id="right">→</button>
-    </div>
+  <div id="ui">
+    <h1>Snake Game</h1>
+    <div id="scoreboard">Score: <span id="score">0</span></div>
+    <div id="highscoreboard">High Score: <span id="highscore">0</span></div>
+
+    <label for="theme-select">Theme:</label>
+    <select id="theme-select">
+      <option value="classic">Classic</option>
+      <option value="dark">Dark</option>
+      <option value="neon">Neon</option>
+      <option value="pastel">Pastel</option>
+    </select>
+
+    <div id="countdown">3</div>
+    <canvas id="game" width="400" height="400"></canvas>
+    <button id="restart">Restart</button>
+  </div>
+
+  <div id="game-over-screen">
+    <h2>Game Over</h2>
+    <p>Your Score: <span id="final-score">0</span></p>
+    <p>High Score: <span id="final-highscore">0</span></p>
+    <button id="play-again">Play Again</button>
   </div>
 
   <script src="script.js"></script>
