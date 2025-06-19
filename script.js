@@ -1,12 +1,13 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const scoreDisplay = document.getElementById("score");
+const highScoreDisplay = document.getElementById("highscore");
 const restartBtn = document.getElementById("restart");
 const countdownOverlay = document.getElementById("countdown");
 
 const box = 20;
 const canvasSize = 400;
-let snake, direction, food, score, gameOver, gameLoop;
+let snake, direction, nextDirection, food, score, highScore, gameOver, gameLoop;
 
 document.addEventListener("keydown", changeDirection);
 restartBtn.addEventListener("click", startCountdown);
@@ -17,15 +18,26 @@ document.getElementById("down").onclick = () => changeDirFromButton("DOWN");
 document.getElementById("left").onclick = () => changeDirFromButton("LEFT");
 document.getElementById("right").onclick = () => changeDirFromButton("RIGHT");
 
-// Swipe support
+// Improved swipe support for smoother mobile controls
 let startX = 0, startY = 0;
+const swipeThreshold = 30; // Minimum swipe distance in pixels
+
 canvas.addEventListener("touchstart", (e) => {
   startX = e.touches[0].clientX;
   startY = e.touches[0].clientY;
 });
-canvas.addEventListener("touchend", (e) => {
-  const dx = e.changedTouches[0].clientX - startX;
-  const dy = e.changedTouches[0].clientY - startY;
+
+canvas.addEventListener("touchmove", (e) => {
+  if (e.touches.length > 1) return; // Ignore multi-touch
+
+  const moveX = e.touches[0].clientX;
+  const moveY = e.touches[0].clientY;
+
+  const dx = moveX - startX;
+  const dy = moveY - startY;
+
+  if (Math.abs(dx) < swipeThreshold && Math.abs(dy) < swipeThreshold) return; // Swipe not far enough
+
   if (Math.abs(dx) > Math.abs(dy)) {
     if (dx > 0) changeDirFromButton("RIGHT");
     else changeDirFromButton("LEFT");
@@ -33,22 +45,49 @@ canvas.addEventListener("touchend", (e) => {
     if (dy > 0) changeDirFromButton("DOWN");
     else changeDirFromButton("UP");
   }
+
+  // Reset start point for continuous swipe detection
+  startX = moveX;
+  startY = moveY;
+
+  e.preventDefault(); // Prevent scrolling
+});
+
+canvas.addEventListener("touchend", (e) => {
+  // Optional: could reset startX/Y here or leave empty
 });
 
 function changeDirFromButton(dir) {
-  if (dir === "UP" && direction !== "DOWN") direction = "UP";
-  if (dir === "DOWN" && direction !== "UP") direction = "DOWN";
-  if (dir === "LEFT" && direction !== "RIGHT") direction = "LEFT";
-  if (dir === "RIGHT" && direction !== "LEFT") direction = "RIGHT";
+  // Prevent reversing direction immediately
+  if (
+    (dir === "UP" && direction === "DOWN") ||
+    (dir === "DOWN" && direction === "UP") ||
+    (dir === "LEFT" && direction === "RIGHT") ||
+    (dir === "RIGHT" && direction === "LEFT")
+  ) return;
+
+  nextDirection = dir;
 }
 
 function changeDirection(e) {
-  changeDirFromButton({
+  const dir = {
     ArrowUp: "UP",
     ArrowDown: "DOWN",
     ArrowLeft: "LEFT",
     ArrowRight: "RIGHT"
-  }[e.key]);
+  }[e.key];
+
+  if (!dir) return;
+
+  // Prevent reversing direction immediately
+  if (
+    (dir === "UP" && direction === "DOWN") ||
+    (dir === "DOWN" && direction === "UP") ||
+    (dir === "LEFT" && direction === "RIGHT") ||
+    (dir === "RIGHT" && direction === "LEFT")
+  ) return;
+
+  nextDirection = dir;
 }
 
 function startCountdown() {
@@ -71,9 +110,15 @@ function startCountdown() {
 function initGame() {
   snake = [{ x: 160, y: 160 }];
   direction = "RIGHT";
+  nextDirection = direction;
   score = 0;
   gameOver = false;
   scoreDisplay.textContent = score;
+
+  // Load high score from localStorage or default 0
+  highScore = localStorage.getItem("snakeHighScore") || 0;
+  highScoreDisplay.textContent = highScore;
+
   generateFood();
 
   if (gameLoop) clearInterval(gameLoop);
@@ -90,6 +135,9 @@ function generateFood() {
 
 function draw() {
   if (gameOver) return;
+
+  // Apply buffered direction at start of each tick
+  direction = nextDirection;
 
   ctx.clearRect(0, 0, canvasSize, canvasSize);
 
@@ -112,14 +160,14 @@ function draw() {
     ctx.shadowBlur = 0;
   }
 
-  // Move
+  // Move snake head
   const head = { ...snake[0] };
   if (direction === "UP") head.y -= box;
   if (direction === "DOWN") head.y += box;
   if (direction === "LEFT") head.x -= box;
   if (direction === "RIGHT") head.x += box;
 
-  // Check collision
+  // Collision detection
   if (
     head.x < 0 || head.x >= canvasSize ||
     head.y < 0 || head.y >= canvasSize ||
@@ -127,6 +175,13 @@ function draw() {
   ) {
     alert("Game Over! Score: " + score);
     gameOver = true;
+
+    // Update high score if beaten
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem("snakeHighScore", highScore);
+      highScoreDisplay.textContent = highScore;
+    }
     return;
   }
 
@@ -143,3 +198,4 @@ function draw() {
 }
 
 startCountdown();
+
