@@ -86,3 +86,17 @@ canvas {
   font-size: 48px;
   margin-bottom: 10px;
 }
+
+#mobile-controls {
+  margin-top: 10px;
+}
+
+#mobile-controls button {
+  padding: 10px 20px;
+  margin: 4px;
+  font-size: 20px;
+  border-radius: 6px;
+  border: 1px solid #999;
+  background: #fff;
+  cursor: pointer;
+}
