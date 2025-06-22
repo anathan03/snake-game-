@@ -7,9 +7,21 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="loading-screen"><h2>Made by Andrew Nathan</h2></div>
+  <div id="loading-screen" style="display:none; flex-direction: column;">
+    <h2 id="loading-mode-text"></h2>
+    <p>Made by Andrew Nathan</p>
+  </div>
 
-  <div id="ui">
+  <!-- Game Mode Selector -->
+  <div id="mode-selector">
+    <h1>🎮 Choose a Game Mode</h1>
+    <button id="normal-mode-btn">Normal Mode</button>
+    <button id="endless-mode-btn">Endless Mode</button>
+    <button id="story-mode-btn">Story Mode</button>
+    <button id="resume-game-btn" style="display: none;">Resume Last Game</button>
+  </div>
+
+  <div id="ui" style="display: none;">
     <h1>Snake Game</h1>
     <div id="scoreboard">Score: <span id="score">0</span></div>
     <div id="highscoreboard">High Score: <span id="highscore">0</span></div>
@@ -24,6 +36,7 @@
 
     <div id="countdown">3</div>
     <canvas id="game" width="400" height="400"></canvas>
+
     <div id="mobile-controls">
       <button id="up">↑</button><br />
       <button id="left">←</button>
@@ -31,7 +44,10 @@
       <button id="right">→</button>
     </div>
 
-    <button id="restart">Restart</button>
+    <div id="action-buttons">
+      <button id="restart">Restart</button>
+      <button id="save-btn">💾 Save Game</button>
+    </div>
   </div>
 
   <div id="game-over-screen">
