@@ -1,147 +1,116 @@
+// Grab elements
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const gridSize = 20;
 const canvasSize = canvas.width;
-let snake = [{ x: 160, y: 160 }];
-let direction = "right";
-let food = getRandomFood();
-let score = 0;
-let highScore = localStorage.getItem("highScore") || 0;
-let snakeColor = "#00cc00"; // Classic green
-let foodColor = "#ff3333";  // Classic red
-let gameInterval;
-let speed = 150;
-let mode = "normal";
-let currentLevel = 0;
-let countdownInterval;
 
-// DOM Elements
 const scoreDisplay = document.getElementById("score");
 const highScoreDisplay = document.getElementById("highscore");
-const countdownEl = document.getElementById("countdown");
-const gameOverScreen = document.getElementById("game-over-screen");
-const finalScore = document.getElementById("final-score");
-const finalHighScore = document.getElementById("final-highscore");
-const playAgainBtn = document.getElementById("play-again");
-const restartBtn = document.getElementById("restart");
-const themeSelect = document.getElementById("theme-select");
-const ui = document.getElementById("ui");
+const finalScoreDisplay = document.getElementById("final-score");
+const finalHighScoreDisplay = document.getElementById("final-highscore");
 const loadingScreen = document.getElementById("loading-screen");
-const normalBtn = document.getElementById("normal-mode-btn");
-const endlessBtn = document.getElementById("endless-mode-btn");
-const storyBtn = document.getElementById("story-mode-btn");
-const resumeBtn = document.getElementById("resume-game-btn");
+const loadingModeText = document.getElementById("loading-mode-text");
+const ui = document.getElementById("ui");
 const modeSelector = document.getElementById("mode-selector");
-const saveBtn = document.getElementById("save-btn");
+const gameOverScreen = document.getElementById("game-over-screen");
+const countdownEl = document.getElementById("countdown");
 
-// Themes
-function applyTheme(theme) {
-  if (theme === "classic") {
-    snakeColor = "#00cc00";
-    foodColor = "#ff3333";
-    canvas.style.backgroundColor = "#000";
-  } else if (theme === "dark") {
-    snakeColor = "#ccc";
-    foodColor = "#ff9900";
-    canvas.style.backgroundColor = "#111";
-  } else if (theme === "neon") {
-    snakeColor = "#39ff14";
-    foodColor = "#ff073a";
-    canvas.style.backgroundColor = "#000";
-  } else if (theme === "pastel") {
-    snakeColor = "#a2d2ff";
-    foodColor = "#ffafcc";
-    canvas.style.backgroundColor = "#fff0f6";
+let snake, direction, directionQueue, food, score, speed, mode, gameInterval;
+let highScore = 0;
+
+// Initialize state variables
+function initState() {
+  snake = [{ x: 160, y: 160 }];
+  direction = "right";
+  directionQueue = [];
+  food = getRandomFood();
+  score = 0;
+  speed = 100;
+}
+
+// Draw function
+function draw() {
+  ctx.clearRect(0, 0, canvasSize, canvasSize);
+  // Draw food
+  ctx.fillStyle = "red";
+  ctx.fillRect(food.x, food.y, gridSize, gridSize);
+  // Draw snake
+  ctx.fillStyle = "lime";
+  for (let segment of snake) {
+    ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
   }
 }
 
-// Start Game
-function startCountdown() {
-  let count = 3;
-  countdownEl.textContent = count;
-  countdownEl.style.display = "block";
-  countdownInterval = setInterval(() => {
-    count--;
-    countdownEl.textContent = count;
-    if (count <= 0) {
-      clearInterval(countdownInterval);
-      countdownEl.style.display = "none";
-      startGame();
-    }
-  }, 1000);
-}
-
-function startGame() {
-  snake = [{ x: 160, y: 160 }];
-  direction = "right";
-  food = getRandomFood();
-  score = 0;
-  speed = 150;
-  currentLevel = 0;
-  updateScore();
-  clearInterval(gameInterval);
-  gameInterval = setInterval(gameLoop, speed);
-}
-
+// Main game loop
 function gameLoop() {
+  // Process queued directions fully, apply first valid
+  while (directionQueue.length > 0) {
+    const next = directionQueue.shift();
+    if (
+      (direction === "up" && next !== "down") ||
+      (direction === "down" && next !== "up") ||
+      (direction === "left" && next !== "right") ||
+      (direction === "right" && next !== "left")
+    ) {
+      direction = next;
+      break;
+    }
+  }
+
+  // Move snake head
   let head = { ...snake[0] };
   if (direction === "right") head.x += gridSize;
-  if (direction === "left") head.x -= gridSize;
-  if (direction === "up") head.y -= gridSize;
-  if (direction === "down") head.y += gridSize;
+  else if (direction === "left") head.x -= gridSize;
+  else if (direction === "up") head.y -= gridSize;
+  else if (direction === "down") head.y += gridSize;
 
+  // Collision check
   if (checkCollision(head)) {
     endGame();
     return;
   }
 
   snake.unshift(head);
-
+  // Eat or move
   if (head.x === food.x && head.y === food.y) {
     score++;
+    if (score > highScore) highScore = score;
     updateScore();
     food = getRandomFood();
   } else {
     snake.pop();
   }
 
-  if (mode === "endless") {
-    if (speed > 60) {
-      clearInterval(gameInterval);
-      speed -= 1;
-      gameInterval = setInterval(gameLoop, speed);
-    }
-  }
-
   draw();
 }
 
+// Collision detection
+function checkCollision(head) {
+  return (
+    head.x < 0 ||
+    head.x >= canvasSize ||
+    head.y < 0 ||
+    head.y >= canvasSize ||
+    snake.some((segment, i) => i !== 0 && segment.x === head.x && segment.y === head.y)
+  );
+}
+
+// Update score displays
 function updateScore() {
   scoreDisplay.textContent = score;
-  if (score > highScore) {
-    highScore = score;
-    localStorage.setItem("highScore", highScore);
-  }
   highScoreDisplay.textContent = highScore;
 }
 
+// End game: stop loop and show game-over UI
 function endGame() {
   clearInterval(gameInterval);
-  finalScore.textContent = score;
-  finalHighScore.textContent = highScore;
+  finalScoreDisplay.textContent = score;
+  finalHighScoreDisplay.textContent = highScore;
   gameOverScreen.style.display = "flex";
+  ui.style.display = "none";
 }
 
-function draw() {
-  ctx.clearRect(0, 0, canvasSize, canvasSize);
-  ctx.fillStyle = snakeColor;
-  snake.forEach(seg => ctx.fillRect(seg.x, seg.y, gridSize, gridSize));
-  ctx.fillStyle = foodColor;
-  ctx.beginPath();
-  ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2.5, 0, 2 * Math.PI);
-  ctx.fill();
-}
-
+// Random food position
 function getRandomFood() {
   return {
     x: Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize,
@@ -149,121 +118,113 @@ function getRandomFood() {
   };
 }
 
-function checkCollision(head) {
-  return (
-    head.x < 0 ||
-    head.x >= canvasSize ||
-    head.y < 0 ||
-    head.y >= canvasSize ||
-    snake.some((seg, i) => i !== 0 && seg.x === head.x && seg.y === head.y)
-  );
-}
-
-// Fix Arrow Key Scrolling
-document.addEventListener("keydown", e => {
-  const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
-  if (keys.includes(e.key)) {
-    e.preventDefault(); // ← This prevents scrolling the page
-  }
-
-  if (e.key === "ArrowUp" && direction !== "down") direction = "up";
-  if (e.key === "ArrowDown" && direction !== "up") direction = "down";
-  if (e.key === "ArrowLeft" && direction !== "right") direction = "left";
-  if (e.key === "ArrowRight" && direction !== "left") direction = "right";
-});
-
-themeSelect.addEventListener("change", () => {
-  applyTheme(themeSelect.value);
-});
-
-// Mobile Controls
-document.getElementById("up").onclick = () => direction = "up";
-document.getElementById("down").onclick = () => direction = "down";
-document.getElementById("left").onclick = () => direction = "left";
-document.getElementById("right").onclick = () => direction = "right";
-
-// Restart / Play Again
-restartBtn.onclick = startCountdown;
-playAgainBtn.onclick = () => {
-  gameOverScreen.style.display = "none";
-  startCountdown();
-};
-
-// Mode Selectors
-function showLoadingScreen(modeName) {
-  loadingScreen.style.display = "flex";
-  document.getElementById("loading-mode-text").textContent = `Loading ${modeName}...`;
-}
-
-normalBtn.onclick = () => {
-  mode = "normal";
-  modeSelector.style.display = "none";
-  showLoadingScreen("Normal Mode");
-  setTimeout(() => {
-    loadingScreen.style.display = "none";
-    ui.style.display = "block";
-    startCountdown();
-  }, 1500);
-};
-
-endlessBtn.onclick = () => {
-  mode = "endless";
-  modeSelector.style.display = "none";
-  showLoadingScreen("Endless Mode");
-  setTimeout(() => {
-    loadingScreen.style.display = "none";
-    ui.style.display = "block";
-    startCountdown();
-  }, 1500);
-};
-
-storyBtn.onclick = () => {
-  mode = "story";
-  currentLevel = 0;
-  modeSelector.style.display = "none";
-  showLoadingScreen("Story Mode");
-  setTimeout(() => {
-    loadingScreen.style.display = "none";
-    ui.style.display = "block";
-    startCountdown();
-  }, 1500);
-};
-
-resumeBtn.onclick = () => {
-  loadGame();
-  modeSelector.style.display = "none";
+// Reset and start the game loop
+function resetGame() {
+  initState();
+  updateScore();
   ui.style.display = "block";
-};
-
-saveBtn.onclick = () => {
-  const saveData = {
-    snake,
-    direction,
-    food,
-    score,
-    highScore,
-    mode
-  };
-  localStorage.setItem("snakeSave", JSON.stringify(saveData));
-};
-
-function loadGame() {
-  const saveData = JSON.parse(localStorage.getItem("snakeSave"));
-  if (saveData) {
-    snake = saveData.snake;
-    direction = saveData.direction;
-    food = saveData.food;
-    score = saveData.score;
-    highScore = saveData.highScore;
-    mode = saveData.mode;
-    updateScore();
-    gameInterval = setInterval(gameLoop, speed);
-  }
+  gameOverScreen.style.display = "none";
+  countdownEl.style.display = "none";
+  countdownEl.textContent = "";
+  if (gameInterval) clearInterval(gameInterval);
+  gameInterval = setInterval(gameLoop, speed);
 }
 
-// Initialize
-applyTheme("classic");
-themeSelect.value = "classic";
-if (localStorage.getItem("snakeSave")) {
-  resumeBtn.style.display = "inline-block";
+// 3-2-1-Go countdown
+function startCountdown(callback) {
+  let count = 3;
+  countdownEl.style.display = "block";
+  countdownEl.textContent = count;
+
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      countdownEl.textContent = count;
+    } else if (count === 0) {
+      countdownEl.textContent = "Go!";
+    } else {
+      clearInterval(interval);
+      countdownEl.style.display = "none";
+      countdownEl.textContent = "";
+      callback(); // Begin game
+    }
+  }, 1000);
 }
+
+// Keyboard input handling with queue
+document.addEventListener("keydown", (e) => {
+  const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+  if (keys.includes(e.key)) e.preventDefault();
+
+  const lastDir = directionQueue.length > 0
+    ? directionQueue[directionQueue.length - 1]
+    : direction;
+
+  if (e.key === "ArrowUp" && lastDir !== "down") directionQueue.push("up");
+  if (e.key === "ArrowDown" && lastDir !== "up") directionQueue.push("down");
+  if (e.key === "ArrowLeft" && lastDir !== "right") directionQueue.push("left");
+  if (e.key === "ArrowRight" && lastDir !== "left") directionQueue.push("right");
+});
+
+// Mobile button input
+document.getElementById("up").onclick = () => directionQueue.push("up");
+document.getElementById("down").onclick = () => directionQueue.push("down");
+document.getElementById("left").onclick = () => directionQueue.push("left");
+document.getElementById("right").onclick = () => directionQueue.push("right");
+
+// Restart button
+document.getElementById("restart").onclick = () => resetGame();
+
+// Play again on game over
+document.getElementById("play-again").onclick = () => {
+  gameOverScreen.style.display = "none";
+  modeSelector.style.display = "flex";
+};
+
+// Helper to capitalize
+function capitalizeFirstLetter(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Start game with loading screen + countdown
+function startGameWithCountdown(selectedMode) {
+  mode = selectedMode;
+  modeSelector.style.display = "none";
+
+  // Show loading screen with "Made by Andrew Nathan"
+  loadingScreen.style.display = "flex";
+  loadingModeText.textContent = `Loading ${capitalizeFirstLetter(selectedMode)} Mode...`;
+
+  // After 1 second, hide loading screen, show game UI + countdown, then start countdown
+  setTimeout(() => {
+    loadingScreen.style.display = "none";
+
+    // Show game UI and countdown
+    ui.style.display = "block";
+    countdownEl.style.display = "block";
+
+    // Start countdown, then start the game
+    startCountdown(() => {
+      countdownEl.style.display = "none";  // Hide countdown after finishing
+      resetGame();  // Start the game loop
+    });
+  }, 1000);
+}
+
+// Mode button handlers
+document.getElementById("normal-mode-btn").onclick = () => {
+  startGameWithCountdown("normal");
+};
+document.getElementById("endless-mode-btn").onclick = () => {
+  startGameWithCountdown("endless");
+};
+document.getElementById("story-mode-btn").onclick = () => {
+  startGameWithCountdown("story");
+};
+
+// On load: show mode selector, hide countdown
+window.onload = () => {
+  modeSelector.style.display = "flex";
+  countdownEl.style.display = "none";
+  countdownEl.textContent = "";
+};
